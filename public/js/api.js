@@ -28,6 +28,7 @@ async function verificarSenha(senha, hash) {
 //  BANCO DE DADOS (localStorage)
 // ============================================================
 const DB_KEY = 'kanban_academico_db';
+let _dbInitialized = false;
 
 function readDB() {
   try {
@@ -44,6 +45,13 @@ function writeDB(db) {
 }
 
 function initDB() {
+  // Se já foi inicializado, não faz seed novamente
+  if (_dbInitialized) {
+    return readDB();
+  }
+  
+  _dbInitialized = true;
+  
   const db = {
     usuarios: [],
     professores: [],
@@ -53,8 +61,50 @@ function initDB() {
     atividades: [],
     disciplina_alunos: [],
   };
+  
+  // Seed de dados iniciais
+  seedDB(db);
   writeDB(db);
   return db;
+}
+
+function seedDB(db) {
+  // Criar usuários de demo
+  const prof = {
+    id: 'prof-demo-001',
+    nome: 'João Professor',
+    email: 'professor@demo.local',
+    senha_hash: 'hash:' + btoa(encodeURIComponent('123456')),
+    papel: 'professor',
+    criado_em: new Date().toISOString(),
+  };
+  
+  const alunos_dados = [
+    { nome: 'Maria Silva', email: 'maria@demo.local', senha: '123456' },
+    { nome: 'Pedro Santos', email: 'pedro@demo.local', senha: '123456' },
+    { nome: 'Ana Costa', email: 'ana@demo.local', senha: '123456' },
+    { nome: 'Carlos Oliveira', email: 'carlos@demo.local', senha: '123456' },
+    { nome: 'Julia Ferreira', email: 'julia@demo.local', senha: '123456' },
+  ];
+  
+  db.usuarios.push(prof);
+  db.professores.push({ usuario_id: prof.id, matricula: 'PROF001' });
+  
+  alunos_dados.forEach((aluno_data, idx) => {
+    const aluno_user = {
+      id: `aluno-demo-${String(idx + 1).padStart(3, '0')}`,
+      nome: aluno_data.nome,
+      email: aluno_data.email,
+      senha_hash: 'hash:' + btoa(encodeURIComponent(aluno_data.senha)),
+      papel: 'aluno',
+      criado_em: new Date().toISOString(),
+    };
+    db.usuarios.push(aluno_user);
+    db.alunos.push({ 
+      usuario_id: aluno_user.id, 
+      matricula: `MAT${String(idx + 1).padStart(3, '0')}` 
+    });
+  });
 }
 
 // ============================================================
@@ -75,7 +125,9 @@ function limparSessao() {
 
 function logout() {
   limparSessao();
-  window.location.href = '/index.html';
+  setTimeout(() => {
+    window.location.href = 'index.html';
+  }, 100);
 }
 
 function entrarSemLogin(papel) {
@@ -325,6 +377,30 @@ const Disciplinas = {
     }
 
     return { mensagem: 'Aluno matriculado com sucesso' };
+  },
+
+  listarAlunosDisponiveis: async (discId) => {
+    const db = readDB();
+    
+    // Pega todos os alunos com seus dados de usuário
+    const todos = db.alunos
+      .map(a => {
+        const usuario = db.usuarios.find(u => u.id === a.usuario_id);
+        if (!usuario) return null;
+        return { 
+          usuario_id: a.usuario_id, 
+          nome: usuario.nome || 'Sem nome', 
+          matricula: a.matricula || 'Sem matrícula' 
+        };
+      })
+      .filter(a => a !== null);
+    
+    // Filtra alunos não matriculados nessa disciplina
+    const matriculados = db.disciplina_alunos
+      .filter(da => da.disciplina_id === discId)
+      .map(da => da.aluno_id);
+    
+    return todos.filter(a => !matriculados.includes(a.usuario_id));
   },
 };
 

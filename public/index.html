@@ -65,8 +65,24 @@
 
     <div class="login-card">
       <h2>Bem-vindo</h2>
-      <p class="login-sub">Selecione como deseja entrar</p>
+      <p class="login-sub">Faça login com suas credenciais</p>
 
+      <form id="form-login">
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="seu@email.com" required />
+        </div>
+        <div class="field">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••" required />
+        </div>
+        <div id="login-erro" class="alert alert-erro hidden"></div>
+        <button type="submit" class="btn-primary" style="width: 100%;">Entrar</button>
+      </form>
+
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+      
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Ou entre como demo:</p>
       <div class="role-cards">
         <div class="role-card" onclick="entrarComo('professor')">
           <div class="role-icon prof">🎓</div>
@@ -86,11 +102,52 @@
           <span class="role-arrow">→</span>
         </div>
       </div>
+
+      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-muted);">
+        <p><strong>Credenciais de teste:</strong></p>
+        <p>👨‍🏫 Professor: professor@demo.local | 123456</p>
+        <p>👨‍🎓 Alunos:</p>
+        <ul style="margin: 8px 0; padding-left: 20px; line-height: 1.4;">
+          <li>maria@demo.local | 123456</li>
+          <li>pedro@demo.local | 123456</li>
+          <li>ana@demo.local | 123456</li>
+          <li>carlos@demo.local | 123456</li>
+          <li>julia@demo.local | 123456</li>
+        </ul>
+      </div>
     </div>
   </main>
 
   <script src="js/api.js"></script>
   <script>
+    // Força inicialização do banco de dados com seed
+    readDB();
+
+    // Verifica se já está logado
+    const _u = getUsuario();
+    if (_u && getToken()) {
+      window.location.href = _u.papel === 'professor' ? 'professor.html' : 'aluno.html';
+    }
+
+    // Handler do formulário de login
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const erroEl = document.getElementById('login-erro');
+      erroEl.classList.add('hidden');
+
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+
+      try {
+        const data = await Auth.login(email, senha);
+        salvarSessao(data);
+        window.location.href = data.usuario.papel === 'professor' ? 'professor.html' : 'aluno.html';
+      } catch (err) {
+        erroEl.textContent = err.message;
+        erroEl.classList.remove('hidden');
+      }
+    });
+
     function entrarComo(papel) {
       entrarSemLogin(papel);
       window.location.href = papel === 'professor' ? 'professor.html' : 'aluno.html';

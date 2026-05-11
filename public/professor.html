@@ -20,9 +20,9 @@
       <a href="professor.html" class="nav-item active">
         <span class="nav-icon">▦</span> Disciplinas
       </a>
-      <a href="#" class="nav-item" id="nav-sair" onclick="logout()">
+      <button class="nav-item" id="nav-sair" onclick="logout(); return false;" style="border: none; background: none; cursor: pointer; width: 100%; text-align: left;">
         <span class="nav-icon">→</span> Sair
-      </a>
+      </button>
     </nav>
     <div class="sidebar-user">
       <div class="user-avatar" id="user-avatar">P</div>
@@ -90,8 +90,10 @@
       <div class="modal-toolbar">
         <button class="btn-primary btn-sm" onclick="abrirModalAtividade()">+ Nova Atividade</button>
         <div class="field field-inline">
-          <label>Matricular aluno (ID):</label>
-          <input type="text" id="aluno-id-input" placeholder="UUID do aluno" />
+          <label>Matricular aluno:</label>
+          <select id="aluno-id-input">
+            <option value="">Selecione um aluno...</option>
+          </select>
           <button class="btn-secondary btn-sm" onclick="matricularAluno()">Matricular</button>
         </div>
       </div>

@@ -147,6 +147,7 @@ async function abrirQuadro(disciplinaId) {
       `Quadro — ${data.disciplina_nome}`;
 
     renderKanbanMini(data.colunas);
+    await carregarAlunosDisponiveis(disciplinaId);
   } catch (err) {
     mostrarErro(err.message);
     fecharModalQuadro();
@@ -269,6 +270,26 @@ function getDisciplinaAtualId() {
 }
 
 // ============================================================
+//  CARREGAR ALUNOS DISPONÍVEIS PARA MATRICULA
+// ============================================================
+async function carregarAlunosDisponiveis(discId) {
+  try {
+    const alunos = await Disciplinas.listarAlunosDisponiveis(discId);
+    const select = document.getElementById('aluno-id-input');
+    
+    select.innerHTML = '<option value="">Selecione um aluno...</option>';
+    alunos.forEach(aluno => {
+      const option = document.createElement('option');
+      option.value = aluno.usuario_id;
+      option.textContent = `${aluno.nome} (${aluno.matricula})`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Erro ao carregar alunos:', err.message);
+  }
+}
+
+// ============================================================
 //  MATRICULAR ALUNO
 // ============================================================
 async function matricularAluno() {
@@ -276,13 +297,14 @@ async function matricularAluno() {
   const alunoId  = document.getElementById('aluno-id-input').value.trim();
   const discId   = getDisciplinaAtualId();
 
-  if (!alunoId) { mostrarErro('Informe o ID do aluno'); return; }
+  if (!alunoId) { mostrarErro('Selecione um aluno'); return; }
   if (!discId)  { mostrarErro('Disciplina não identificada'); return; }
 
   try {
     await Disciplinas.matricular(discId, alunoId);
     mostrarSucesso('Aluno matriculado com sucesso!');
     document.getElementById('aluno-id-input').value = '';
+    await carregarAlunosDisponiveis(discId);
     await carregarDisciplinas();
   } catch (err) {
     mostrarErro(err.message);
