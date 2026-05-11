@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Acadêmico — Painel do Professor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="dashboard-page">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon-sm">⬛</span>
+      <span>Kanban Acadêmico</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="professor.html" class="nav-item active">
+        <span class="nav-icon">▦</span> Disciplinas
+      </a>
+      <a href="#" class="nav-item" id="nav-sair" onclick="logout()">
+        <span class="nav-icon">→</span> Sair
+      </a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">P</div>
+      <div class="user-info">
+        <span class="user-nome" id="user-nome">Professor</span>
+        <span class="user-papel">Professor</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- HEADER -->
+    <header class="page-header">
+      <div>
+        <h2 class="page-title">Minhas Disciplinas</h2>
+        <p class="page-sub">Gerencie suas disciplinas e atividades</p>
+      </div>
+      <button class="btn-primary" onclick="abrirModalDisciplina()">
+        + Nova Disciplina
+      </button>
+    </header>
+
+    <!-- ALERTAS -->
+    <div id="dashboard-erro"    class="alert alert-erro hidden"></div>
+    <div id="dashboard-sucesso" class="alert alert-sucesso hidden"></div>
+
+    <!-- LISTA DE DISCIPLINAS -->
+    <section class="disciplinas-grid" id="disciplinas-grid">
+      <div class="loading-state">Carregando disciplinas...</div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Criar/Editar Disciplina -->
+  <div class="modal-overlay hidden" id="modal-disciplina">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-disc-titulo">Nova Disciplina</h3>
+        <button class="modal-close" onclick="fecharModalDisciplina()">✕</button>
+      </div>
+      <form id="form-disciplina">
+        <div class="field">
+          <label for="disc-nome">Nome da disciplina</label>
+          <input type="text" id="disc-nome" placeholder="Ex: Engenharia de Software" required />
+        </div>
+        <input type="hidden" id="disc-id" />
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="fecharModalDisciplina()">Cancelar</button>
+          <button type="submit" class="btn-primary" id="btn-salvar-disc">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Gerenciar Atividades do Quadro -->
+  <div class="modal-overlay hidden" id="modal-quadro">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h3 id="modal-quadro-titulo">Quadro</h3>
+        <button class="modal-close" onclick="fecharModalQuadro()">✕</button>
+      </div>
+
+      <div class="modal-toolbar">
+        <button class="btn-primary btn-sm" onclick="abrirModalAtividade()">+ Nova Atividade</button>
+        <div class="field field-inline">
+          <label>Matricular aluno (ID):</label>
+          <input type="text" id="aluno-id-input" placeholder="UUID do aluno" />
+          <button class="btn-secondary btn-sm" onclick="matricularAluno()">Matricular</button>
+        </div>
+      </div>
+
+      <!-- Mini Kanban no modal -->
+      <div class="kanban-mini" id="kanban-mini">
+        <div class="kanban-col">
+          <div class="kanban-col-header col-afazer">A Fazer</div>
+          <div class="kanban-cards" id="mini-afazer"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header col-andamento">Em Andamento</div>
+          <div class="kanban-cards" id="mini-andamento"></div>
+        </div>
+        <div class="kanban-col">
+          <div class="kanban-col-header col-concluido">Concluído</div>
+          <div class="kanban-cards" id="mini-concluido"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Criar/Editar Atividade -->
+  <div class="modal-overlay hidden" id="modal-atividade">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-atv-titulo">Nova Atividade</h3>
+        <button class="modal-close" onclick="fecharModalAtividade()">✕</button>
+      </div>
+      <form id="form-atividade">
+        <input type="hidden" id="atv-id" />
+        <input type="hidden" id="atv-quadro-id" />
+        <div class="field">
+          <label>Título</label>
+          <input type="text" id="atv-titulo" placeholder="Título da atividade" required />
+        </div>
+        <div class="field">
+          <label>Descrição</label>
+          <textarea id="atv-descricao" placeholder="Descrição opcional..." rows="3"></textarea>
+        </div>
+        <div class="field">
+          <label>Prazo</label>
+          <input type="date" id="atv-prazo" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="fecharModalAtividade()">Cancelar</button>
+          <button type="submit" class="btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/professor.js"></script>
+</body>
+</html>

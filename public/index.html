@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Acadêmico — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="login-page">
+
+  <div class="login-bg">
+    <div class="login-grid"></div>
+  </div>
+
+  <main class="login-container">
+    <div class="login-brand">
+      <div class="brand-icon">⬛</div>
+      <h1 class="brand-title">Kanban<br/><span>Acadêmico</span></h1>
+    </div>
+
+    <div class="login-card">
+      <h2>Entrar no sistema</h2>
+      <p class="login-sub">Acesse com suas credenciais institucionais</p>
+
+      <div id="login-erro" class="alert alert-erro hidden"></div>
+
+      <form id="form-login">
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-primary" id="btn-login">
+          <span class="btn-text">Entrar</span>
+          <span class="btn-loader hidden">Carregando...</span>
+        </button>
+      </form>
+
+      <div class="login-divider">
+        <span>não tem conta?</span>
+      </div>
+
+      <button class="btn-secondary" onclick="window.location.href='register.html'">
+        Criar conta
+      </button>
+    </div>
+
+    <p class="login-hint">
+      <strong>Teste:</strong> prof@kanban.dev / prof123 &nbsp;|&nbsp; aluno@kanban.dev / aluno123
+    </p>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>
