@@ -3,10 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kanban Acadêmico — Login</title>
+  <title>Kanban Acadêmico</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .role-card {
+      width: 100%;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      text-align: left;
+    }
+    .role-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(79,124,255,0.15);
+    }
+    .role-icon {
+      font-size: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .role-icon.prof  { background: rgba(79,124,255,0.12); }
+    .role-icon.aluno { background: rgba(34,197,94,0.12); }
+    .role-info h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+    .role-info p { font-size: 0.82rem; color: var(--text-muted); }
+    .role-arrow  { margin-left: auto; color: var(--text-muted); font-size: 1.2rem; }
+    .role-cards  { display: flex; flex-direction: column; gap: 14px; width: 100%; }
+    .login-card h2        { margin-bottom: 6px; }
+    .login-card .login-sub{ margin-bottom: 24px; }
+  </style>
 </head>
 <body class="login-page">
 
@@ -21,41 +64,37 @@
     </div>
 
     <div class="login-card">
-      <h2>Entrar no sistema</h2>
-      <p class="login-sub">Acesse com suas credenciais institucionais</p>
+      <h2>Bem-vindo</h2>
+      <p class="login-sub">Selecione como deseja entrar</p>
 
-      <div id="login-erro" class="alert alert-erro hidden"></div>
-
-      <form id="form-login">
-        <div class="field">
-          <label for="email">E-mail</label>
-          <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email" />
+      <div class="role-cards">
+        <div class="role-card" onclick="entrarComo('professor')">
+          <div class="role-icon prof">🎓</div>
+          <div class="role-info">
+            <h3>Professor</h3>
+            <p>Gerencie disciplinas e atividades</p>
+          </div>
+          <span class="role-arrow">→</span>
         </div>
-        <div class="field">
-          <label for="senha">Senha</label>
-          <input type="password" id="senha" placeholder="••••••••" required autocomplete="current-password" />
-        </div>
-        <button type="submit" class="btn-primary" id="btn-login">
-          <span class="btn-text">Entrar</span>
-          <span class="btn-loader hidden">Carregando...</span>
-        </button>
-      </form>
 
-      <div class="login-divider">
-        <span>não tem conta?</span>
+        <div class="role-card" onclick="entrarComo('aluno')">
+          <div class="role-icon aluno">📚</div>
+          <div class="role-info">
+            <h3>Aluno</h3>
+            <p>Visualize e mova suas atividades</p>
+          </div>
+          <span class="role-arrow">→</span>
+        </div>
       </div>
-
-      <button class="btn-secondary" onclick="window.location.href='register.html'">
-        Criar conta
-      </button>
     </div>
-
-    <p class="login-hint">
-      <strong>Teste:</strong> prof@kanban.dev / prof123 &nbsp;|&nbsp; aluno@kanban.dev / aluno123
-    </p>
   </main>
 
   <script src="js/api.js"></script>
-  <script src="js/login.js"></script>
+  <script>
+    function entrarComo(papel) {
+      entrarSemLogin(papel);
+      window.location.href = papel === 'professor' ? 'professor.html' : 'aluno.html';
+    }
+  </script>
 </body>
 </html>
