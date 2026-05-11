@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanban Acadêmico — Quadro do Aluno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body class="dashboard-page kanban-page">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon-sm">⬛</span>
+      <span>Kanban Acadêmico</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="aluno.html" class="nav-item active">
+        <span class="nav-icon">▦</span> Meu Quadro
+      </a>
+      <a href="#" class="nav-item" onclick="logout()">
+        <span class="nav-icon">→</span> Sair
+      </a>
+    </nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div class="user-info">
+        <span class="user-nome" id="user-nome">Aluno</span>
+        <span class="user-papel">Aluno</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <header class="page-header">
+      <div>
+        <h2 class="page-title">Quadro Kanban</h2>
+        <p class="page-sub">Arraste os cards para atualizar o status das atividades</p>
+      </div>
+      <!-- Seletor de disciplina -->
+      <div class="disc-selector">
+        <label for="sel-disciplina">Disciplina:</label>
+        <select id="sel-disciplina" onchange="trocarDisciplina()">
+          <option value="">Carregando...</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- ALERTAS -->
+    <div id="kanban-erro" class="alert alert-erro hidden"></div>
+    <div id="kanban-sucesso" class="alert alert-sucesso hidden"></div>
+
+    <!-- TOAST de aviso (coluna inválida) -->
+    <div id="toast-aviso" class="toast hidden">
+      ⚠ Movimento inválido. Não foi possível mover o card.
+    </div>
+
+    <!-- BOARD -->
+    <div class="kanban-board" id="kanban-board">
+
+      <!-- COLUNA: A Fazer -->
+      <div class="kanban-column" id="col-a_fazer" data-status="a_fazer" ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'a_fazer')">
+        <div class="col-title col-afazer">
+          A Fazer
+          <span class="col-count" id="count-a_fazer">0</span>
+        </div>
+        <div class="col-body" id="body-a_fazer">
+          <div class="loading-state">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- COLUNA: Em Andamento -->
+      <div class="kanban-column" id="col-em_andamento" data-status="em_andamento" ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'em_andamento')">
+        <div class="col-title col-andamento">
+          Em Andamento
+          <span class="col-count" id="count-em_andamento">0</span>
+        </div>
+        <div class="col-body" id="body-em_andamento">
+          <div class="loading-state">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- COLUNA: Concluído -->
+      <div class="kanban-column" id="col-concluido" data-status="concluido" ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'concluido')">
+        <div class="col-title col-concluido">
+          Concluído
+          <span class="col-count" id="count-concluido">0</span>
+        </div>
+        <div class="col-body" id="body-concluido">
+          <div class="loading-state">Carregando...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Estado vazio (sem disciplinas) -->
+    <div id="sem-disciplinas" class="empty-state hidden">
+      <h3>Nenhuma disciplina encontrada</h3>
+      <p>Você ainda não está matriculado em nenhuma disciplina.<br />
+        Peça ao seu professor para matriculá-lo.</p>
+    </div>
+
+  </main>
+
+  <!-- MODAL: Detalhes da atividade (UC_04) -->
+  <div class="modal-overlay hidden" id="modal-detalhe">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="detalhe-titulo">Detalhes da Atividade</h3>
+        <button class="modal-close" onclick="fecharDetalhe()">✕</button>
+      </div>
+      <div class="modal-detalhe-body" id="detalhe-body">
+        <!-- preenchido via JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/aluno.js"></script>
+</body>
+
+</html>
