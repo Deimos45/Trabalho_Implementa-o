@@ -1,89 +1,72 @@
 // src/controllers/disciplinasController.js
 const { validationResult } = require('express-validator');
-const { query, getClient } = require('../database/db');
+const { readDB, writeDB, randomUUID } = require('../database/db');
 
 // ============================================================
 //  LISTAR disciplinas
-//  Professor → vê apenas as suas
-//  Aluno     → vê apenas as que está matriculado
 // ============================================================
 exports.listar = async (req, res, next) => {
   try {
-    let resultado;
+    const db = readDB();
 
     if (req.usuario.papel === 'professor') {
-      resultado = await query(
-        `SELECT d.id, d.nome, d.criado_em,
-                COUNT(DISTINCT da.aluno_id)  AS total_alunos,
-                COUNT(DISTINCT a.id)         AS total_atividades
-         FROM disciplinas d
-         LEFT JOIN disciplina_alunos da ON da.disciplina_id = d.id
-         LEFT JOIN quadros q ON q.disciplina_id = d.id
-         LEFT JOIN atividades a ON a.quadro_id = q.id
-         WHERE d.professor_id = $1
-         GROUP BY d.id
-         ORDER BY d.criado_em DESC`,
-        [req.usuario.id]
-      );
-    } else {
-      // aluno
-      resultado = await query(
-        `SELECT d.id, d.nome, d.criado_em,
-                u.nome AS professor_nome
-         FROM disciplinas d
-         JOIN disciplina_alunos da ON da.disciplina_id = d.id
-         JOIN usuarios u ON u.id = d.professor_id
-         WHERE da.aluno_id = $1
-         ORDER BY d.criado_em DESC`,
-        [req.usuario.id]
-      );
+      const disciplinas = db.disciplinas
+        .filter(d => d.professor_id === req.usuario.id)
+        .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em))
+        .map(d => {
+          const quadrosIds      = db.quadros.filter(q => q.disciplina_id === d.id).map(q => q.id);
+          const total_alunos    = db.disciplina_alunos.filter(da => da.disciplina_id === d.id).length;
+          const total_atividades = db.atividades.filter(a => quadrosIds.includes(a.quadro_id)).length;
+          return { ...d, total_alunos, total_atividades };
+        });
+      return res.json(disciplinas);
     }
 
-    return res.json(resultado.rows);
-  } catch (err) {
-    next(err);
-  }
+    // Aluno — vê apenas as que está matriculado
+    const matriculas  = db.disciplina_alunos.filter(da => da.aluno_id === req.usuario.id);
+    const disciplinas = matriculas
+      .map(da => {
+        const disc      = db.disciplinas.find(d => d.id === da.disciplina_id);
+        if (!disc) return null;
+        const professor = db.usuarios.find(u => u.id === disc.professor_id);
+        return { ...disc, professor_nome: professor?.nome };
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+
+    return res.json(disciplinas);
+  } catch (err) { next(err); }
 };
 
 // ============================================================
-//  CRIAR disciplina (Professor)
-//  Cria disciplina + quadro automaticamente (relação 1:1)
+//  CRIAR disciplina + quadro (Professor)
 // ============================================================
 exports.criar = async (req, res, next) => {
-  const client = await getClient();
   try {
     const erros = validationResult(req);
     if (!erros.isEmpty()) return res.status(400).json({ erros: erros.array() });
 
     const { nome } = req.body;
+    const db = readDB();
 
-    await client.query('BEGIN');
+    const disciplina = {
+      id:           randomUUID(),
+      nome:         nome.trim(),
+      professor_id: req.usuario.id,
+      criado_em:    new Date().toISOString(),
+    };
+    db.disciplinas.push(disciplina);
 
-    // Cria a disciplina
-    const disc = await client.query(
-      `INSERT INTO disciplinas (nome, professor_id) VALUES ($1, $2) RETURNING *`,
-      [nome.trim(), req.usuario.id]
-    );
-    const disciplina = disc.rows[0];
+    const quadro = {
+      id:            randomUUID(),
+      titulo:        `Quadro - ${nome.trim()}`,
+      disciplina_id: disciplina.id,
+    };
+    db.quadros.push(quadro);
 
-    // Cria o quadro automaticamente vinculado à disciplina
-    const quadro = await client.query(
-      `INSERT INTO quadros (titulo, disciplina_id) VALUES ($1, $2) RETURNING *`,
-      [`Quadro - ${nome.trim()}`, disciplina.id]
-    );
-
-    await client.query('COMMIT');
-
-    return res.status(201).json({
-      ...disciplina,
-      quadro: quadro.rows[0],
-    });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    next(err);
-  } finally {
-    client.release();
-  }
+    writeDB(db);
+    return res.status(201).json({ ...disciplina, quadro });
+  } catch (err) { next(err); }
 };
 
 // ============================================================
@@ -92,35 +75,29 @@ exports.criar = async (req, res, next) => {
 exports.detalhar = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const db = readDB();
 
-    const resultado = await query(
-      `SELECT d.*, u.nome AS professor_nome,
-              q.id AS quadro_id, q.titulo AS quadro_titulo
-       FROM disciplinas d
-       JOIN usuarios u ON u.id = d.professor_id
-       LEFT JOIN quadros q ON q.disciplina_id = d.id
-       WHERE d.id = $1`,
-      [id]
-    );
+    const disciplina = db.disciplinas.find(d => d.id === id);
+    if (!disciplina) return res.status(404).json({ erro: 'Disciplina não encontrada' });
 
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ erro: 'Disciplina não encontrada' });
-    }
-
-    // Verifica permissão de acesso
-    const disc = resultado.rows[0];
-    if (req.usuario.papel === 'professor' && disc.professor_id !== req.usuario.id) {
+    if (req.usuario.papel === 'professor' && disciplina.professor_id !== req.usuario.id) {
       return res.status(403).json({ erro: 'Acesso negado a esta disciplina' });
     }
 
-    return res.json(disc);
-  } catch (err) {
-    next(err);
-  }
+    const professor = db.usuarios.find(u => u.id === disciplina.professor_id);
+    const quadro    = db.quadros.find(q => q.disciplina_id === disciplina.id);
+
+    return res.json({
+      ...disciplina,
+      professor_nome: professor?.nome,
+      quadro_id:      quadro?.id,
+      quadro_titulo:  quadro?.titulo,
+    });
+  } catch (err) { next(err); }
 };
 
 // ============================================================
-//  EDITAR disciplina (só o professor dono)
+//  EDITAR disciplina (Professor dono)
 // ============================================================
 exports.editar = async (req, res, next) => {
   try {
@@ -129,45 +106,37 @@ exports.editar = async (req, res, next) => {
 
     const { id }   = req.params;
     const { nome } = req.body;
+    const db = readDB();
 
-    const resultado = await query(
-      `UPDATE disciplinas SET nome = $1
-       WHERE id = $2 AND professor_id = $3
-       RETURNING *`,
-      [nome.trim(), id, req.usuario.id]
-    );
+    const idx = db.disciplinas.findIndex(d => d.id === id && d.professor_id === req.usuario.id);
+    if (idx === -1) return res.status(404).json({ erro: 'Disciplina não encontrada ou sem permissão' });
 
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ erro: 'Disciplina não encontrada ou sem permissão' });
-    }
-
-    return res.json(resultado.rows[0]);
-  } catch (err) {
-    next(err);
-  }
+    db.disciplinas[idx].nome = nome.trim();
+    writeDB(db);
+    return res.json(db.disciplinas[idx]);
+  } catch (err) { next(err); }
 };
 
 // ============================================================
-//  EXCLUIR disciplina (só o professor dono)
-//  Cascade apaga quadro e atividades automaticamente
+//  EXCLUIR disciplina — cascade manual
 // ============================================================
 exports.excluir = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const db = readDB();
 
-    const resultado = await query(
-      `DELETE FROM disciplinas WHERE id = $1 AND professor_id = $2 RETURNING id`,
-      [id, req.usuario.id]
-    );
+    const idx = db.disciplinas.findIndex(d => d.id === id && d.professor_id === req.usuario.id);
+    if (idx === -1) return res.status(404).json({ erro: 'Disciplina não encontrada ou sem permissão' });
 
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ erro: 'Disciplina não encontrada ou sem permissão' });
-    }
+    const quadrosIds = db.quadros.filter(q => q.disciplina_id === id).map(q => q.id);
+    db.atividades        = db.atividades.filter(a => !quadrosIds.includes(a.quadro_id));
+    db.quadros           = db.quadros.filter(q => q.disciplina_id !== id);
+    db.disciplina_alunos = db.disciplina_alunos.filter(da => da.disciplina_id !== id);
+    db.disciplinas.splice(idx, 1);
 
+    writeDB(db);
     return res.json({ mensagem: 'Disciplina excluída com sucesso' });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
 // ============================================================
@@ -178,76 +147,51 @@ exports.matricularAluno = async (req, res, next) => {
     const erros = validationResult(req);
     if (!erros.isEmpty()) return res.status(400).json({ erros: erros.array() });
 
-    const { id }       = req.params; // disciplina_id
+    const { id }       = req.params;
     const { aluno_id } = req.body;
+    const db = readDB();
 
-    // Verifica se a disciplina pertence ao professor
-    const disc = await query(
-      'SELECT id FROM disciplinas WHERE id = $1 AND professor_id = $2',
-      [id, req.usuario.id]
-    );
-    if (disc.rows.length === 0) {
-      return res.status(404).json({ erro: 'Disciplina não encontrada ou sem permissão' });
+    const disciplina = db.disciplinas.find(d => d.id === id && d.professor_id === req.usuario.id);
+    if (!disciplina) return res.status(404).json({ erro: 'Disciplina não encontrada ou sem permissão' });
+
+    const aluno = db.alunos.find(a => a.usuario_id === aluno_id);
+    if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado' });
+
+    const jaMatriculado = db.disciplina_alunos.find(da => da.disciplina_id === id && da.aluno_id === aluno_id);
+    if (!jaMatriculado) {
+      db.disciplina_alunos.push({ disciplina_id: id, aluno_id });
+      writeDB(db);
     }
-
-    // Verifica se o aluno existe
-    const aluno = await query('SELECT usuario_id FROM alunos WHERE usuario_id = $1', [aluno_id]);
-    if (aluno.rows.length === 0) {
-      return res.status(404).json({ erro: 'Aluno não encontrado' });
-    }
-
-    await query(
-      `INSERT INTO disciplina_alunos (disciplina_id, aluno_id) VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [id, aluno_id]
-    );
 
     return res.json({ mensagem: 'Aluno matriculado com sucesso' });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
 // ============================================================
-//  VER QUADRO completo da disciplina com atividades por coluna
+//  VER QUADRO completo da disciplina (Kanban)
 // ============================================================
 exports.verQuadro = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const db = readDB();
 
-    // Busca o quadro
-    const quadroRes = await query(
-      `SELECT q.id, q.titulo, d.nome AS disciplina_nome
-       FROM quadros q
-       JOIN disciplinas d ON d.id = q.disciplina_id
-       WHERE d.id = $1`,
-      [id]
-    );
+    const disciplina = db.disciplinas.find(d => d.id === id);
+    const quadro     = db.quadros.find(q => q.disciplina_id === id);
+    if (!quadro || !disciplina) return res.status(404).json({ erro: 'Quadro não encontrado' });
 
-    if (quadroRes.rows.length === 0) {
-      return res.status(404).json({ erro: 'Quadro não encontrado' });
-    }
+    const atividades = db.atividades
+      .filter(a => a.quadro_id === quadro.id)
+      .sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em));
 
-    const quadro = quadroRes.rows[0];
-
-    // Busca atividades agrupadas por status
-    const atividadesRes = await query(
-      `SELECT id, titulo, descricao, prazo, status, criado_em
-       FROM atividades
-       WHERE quadro_id = $1
-       ORDER BY criado_em ASC`,
-      [quadro.id]
-    );
-
-    // Organiza em colunas do Kanban
-    const colunas = {
-      a_fazer:      atividadesRes.rows.filter(a => a.status === 'a_fazer'),
-      em_andamento: atividadesRes.rows.filter(a => a.status === 'em_andamento'),
-      concluido:    atividadesRes.rows.filter(a => a.status === 'concluido'),
-    };
-
-    return res.json({ ...quadro, colunas });
-  } catch (err) {
-    next(err);
-  }
+    return res.json({
+      id:              quadro.id,
+      titulo:          quadro.titulo,
+      disciplina_nome: disciplina.nome,
+      colunas: {
+        a_fazer:      atividades.filter(a => a.status === 'a_fazer'),
+        em_andamento: atividades.filter(a => a.status === 'em_andamento'),
+        concluido:    atividades.filter(a => a.status === 'concluido'),
+      },
+    });
+  } catch (err) { next(err); }
 };

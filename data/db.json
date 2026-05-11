@@ -1,0 +1,23 @@
+{
+  "usuarios": [
+    {
+      "id": "2ca9fdf6-d0e6-434a-90ab-3ae74297af70",
+      "nome": "Prof Teste",
+      "email": "prof@teste.com",
+      "senha_hash": "$2b$10$dpCrvBX3lxnds8K.a7jVN.4Qluku7LubE3heGKBPy57t5K62EFwdi",
+      "papel": "professor",
+      "criado_em": "2026-05-11T18:13:56.996Z"
+    }
+  ],
+  "professores": [
+    {
+      "usuario_id": "2ca9fdf6-d0e6-434a-90ab-3ae74297af70",
+      "matricula": "MAT001"
+    }
+  ],
+  "alunos": [],
+  "disciplinas": [],
+  "quadros": [],
+  "atividades": [],
+  "disciplina_alunos": []
+}

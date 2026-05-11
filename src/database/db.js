@@ -1,42 +1,38 @@
 // src/database/db.js
-// Pool de conexão com PostgreSQL usando o módulo 'pg'
+// Armazenamento em arquivo JSON local (substitui PostgreSQL)
 
-const { Pool } = require('pg');
+const fs   = require('fs');
+const path = require('path');
+const { randomUUID } = require('crypto');
 
-const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME     || 'kanban_academico',
-  user:     process.env.DB_USER     || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  // Limites do pool de conexões
-  max:              10,   // máximo de conexões simultâneas
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+const DB_PATH = path.join(__dirname, '../../data/db.json');
 
-// Testa a conexão ao inicializar
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('❌ Erro ao conectar ao PostgreSQL:', err.message);
-    process.exit(1);
+const defaultDB = {
+  usuarios:          [],
+  professores:       [],
+  alunos:            [],
+  disciplinas:       [],
+  quadros:           [],
+  atividades:        [],
+  disciplina_alunos: [],
+};
+
+function readDB() {
+  if (!fs.existsSync(DB_PATH)) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    writeDB(defaultDB);
+    return JSON.parse(JSON.stringify(defaultDB));
   }
-  release();
-  console.log('✅ PostgreSQL conectado com sucesso!');
-});
+  return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+}
 
-/**
- * Executa uma query com parâmetros opcionais.
- * @param {string} text  - SQL com placeholders ($1, $2, ...)
- * @param {Array}  params - Valores para os placeholders
- * @returns {Promise<QueryResult>}
- */
-const query = (text, params) => pool.query(text, params);
+function writeDB(data) {
+  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+}
 
-/**
- * Obtém um client do pool para transações manuais.
- * Lembre-se de chamar client.release() após o uso.
- */
-const getClient = () => pool.connect();
+// Inicializa o arquivo se não existir
+readDB();
+console.log('✅ Banco de dados JSON iniciado em:', DB_PATH);
 
-module.exports = { query, getClient, pool };
+module.exports = { readDB, writeDB, randomUUID };
